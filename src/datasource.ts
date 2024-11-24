@@ -1,67 +1,107 @@
-import { RESTDataSource, RequestOptions } from '@apollo/datasource-rest';
-import sdk from '@stackblitz/sdk'; // Ensure you have this package installed
+import { RESTDataSource } from '@apollo/datasource-rest';
 
-export class StackBlitzAPI extends RESTDataSource {
-
+class StackBlitzAPI extends RESTDataSource {
   constructor() {
     super();
-    
-     // If there's a base URL for StackBlitz API, set it here.
-     this.baseURL = 'https://api.stackblitz.com'; // Hypothetical; adjust as necessary.
-   }
+    // Set the base URL for the StackBlitz API
+    this.baseURL = 'https://api.stackblitz.com'; // Adjust as necessary
+  }
 
-   async getProjects(first?: number, after?: string) {
-     // Logic to fetch projects with pagination support.
-     const response = await sdk.getProjects({ first, after });
-     return this.transformProjects(response);
-   }
+  // Fetch all projects with optional pagination
+  async getProjects(first?: number, after?: string) {
+    const response = await this.get('/projects', {
+      first,
+      after,
+    });
+    return this.transformProjects(response);
+  }
 
-   async getProjectById(id: string) {
-     // Logic to fetch a single project by ID.
-     const response = await sdk.getProjectById(id);
-     return this.transformProject(response);
-   }
+  // Fetch a single project by ID
+  async getProjectById(id: string) {
+    const response = await this.get(`/projects/${id}`);
+    return this.transformProject(response);
+  }
 
-   async getUsers(first?: number, after?: string) {
-     // Logic to fetch users with pagination support.
-     const response = await sdk.getUsers({ first, after });
-     return this.transformUsers(response);
-   }
+  // Fetch all users with optional pagination
+  async getUsers(first?: number, after?: string) {
+    const response = await this.get('/users', {
+      first,
+      after,
+    });
+    return this.transformUsers(response);
+  }
 
-   async getUserById(id: string) {
-     // Logic to fetch a single user by ID.
-     const response = await sdk.getUserById(id);
-     return this.transformUser(response);
-   }
+  // Fetch a single user by ID
+  async getUserById(id: string) {
+    const response = await this.get(`/users/${id}`);
+    return this.transformUser(response);
+  }
 
-   async createProject(input) {
-     const response = await sdk.createProject(input);
-     return { project: this.transformProject(response) };
-   }
+  // Create a new project
+  async createProject(input: { title: string; description?: string }) {
+    const response = await this.post('/projects', input);
+    return { project: this.transformProject(response) };
+  }
 
-   async updateProject(id: string, input) {
-     const response = await sdk.updateProject(id, input);
-     return { project: this.transformProject(response) };
-   }
+  // Update an existing project
+  async updateProject(id: string, input: { title?: string; description?: string }) {
+    const response = await this.put(`/projects/${id}`, input);
+    return { project: this.transformProject(response) };
+  }
 
-   async deleteProject(id: string) {
-     await sdk.deleteProject(id);
-     return { success: true };
-   }
+  // Delete a project by ID
+  async deleteProject(id: string) {
+    await this.delete(`/projects/${id}`);
+    return { success: true };
+  }
 
-   private transformProjects(response) {
-     // Transform the response into ProjectConnection format as needed.
-   }
-   
-   private transformUsers(response) {
-     // Transform the response into UserConnection format as needed.
-   }
-   
-   private transformUser(response) {
-     // Transform the response into User format as needed.
-   }
-   
-   private transformProject(response) {
-     // Transform the response into Project format as needed.
-   }
+  // Transformations to match GraphQL schema types
+
+  private transformProjects(response: any) {
+    return {
+      edges: response.items.map((project: any) => ({
+        cursor: project.id,
+        node: this.transformProject(project),
+      })),
+      pageInfo: {
+        hasNextPage: response.hasNextPage,
+        endCursor: response.endCursor,
+      },
+    };
+  }
+
+  private transformProject(project: any) {
+    return {
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+      owner: project.owner, // Assuming owner is already a User object
+    };
+  }
+
+  private transformUsers(response: any) {
+    return {
+      edges: response.items.map((user: any) => ({
+        cursor: user.id,
+        node: this.transformUser(user),
+      })),
+      pageInfo: {
+        hasNextPage: response.hasNextPage,
+        endCursor: response.endCursor,
+      },
+    };
+  }
+
+  private transformUser(user: any) {
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      projects: user.projects, // Assuming projects is already structured correctly
+    };
+  }
 }
+
+export default StackBlitzAPI;
