@@ -1,11 +1,80 @@
 interface Node {
-  id: ID!
-}
+    id: ID!
+  }
 
-type Query {
-  hello: String
-}
+  type Query {
+    node(id: ID!): Node
+    projects(first: Int, after: String): ProjectConnection!
+    project(id: ID!): Project
+    users(first: Int, after: String): UserConnection!
+    user(id: ID!): User
+  }
 
-type Mutation {
-  say(input: String!): String!
-}
+  type Mutation {
+    createProject(input: CreateProjectInput!): CreateProjectPayload!
+    updateProject(id: ID!, input: UpdateProjectInput!): UpdateProjectPayload!
+    deleteProject(id: ID!): DeleteProjectPayload!
+  }
+
+  type Project implements Node  {
+    id: ID!
+    title: String!
+    description: String
+    createdAt: String!
+    updatedAt: String!
+    owner: User!
+  }
+
+  type User implements Node {
+    id: ID!
+    username: String!
+    email: String!
+    projects(first: Int, after: String): ProjectConnection!
+  }
+
+  type ProjectConnection {
+    edges: [ProjectEdge!]!
+    pageInfo: PageInfo!
+  }
+
+  type ProjectEdge {
+    cursor: String!
+    node: Project!
+  }
+
+  type UserConnection {
+    edges: [UserEdge!]!
+    pageInfo: PageInfo!
+  }
+
+  type UserEdge {
+    cursor: String!
+    node: User!;
+  }
+
+  type PageInfo {
+    hasNextPage: Boolean!
+    endCursor: String
+  }
+
+  input CreateProjectInput {
+    title: String!
+    description: String
+  }
+
+  type CreateProjectPayload {
+    project: Project!;
+  }
+
+  input UpdateProjectInput {
+    title: String
+    description: String
+  }
+
+  type UpdateProjectPayload {
+    project: Project!;
+  }
+
+  type DeleteProjectPayload {
+    success: Boolean!;
+  }
