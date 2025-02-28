@@ -1,68 +1,106 @@
-import { IResolvers } from 'graphql-tools';
-import { DataSources } from './dataSources'; // Adjust the import based on your project structure
+import { IResolvers } from '@graphql-tools/utils';
+import { StackBlitzDataSource } from './datasource';
+import { 
+  ResolverContext, 
+  Resolvers, 
+  StackBlitzProject, 
+  StackBlitzUser,
+  Node
+} from './types';
 
-const resolvers: IResolvers = {
+// Decode a global ID into type and local ID
+function decodeGlobalId(globalId: string): { type: string; id: string } {
+  try {
+    const decoded = Buffer.from(globalId, 'base64').toString('utf-8');
+    const [type, id] = decoded.split(':');
+    if (!type || !id) {
+      throw new Error('Invalid ID format');
+    }
+    return { type, id };
+  } catch (error) {
+    throw new Error(`Invalid global ID: ${globalId}`);
+  }
+}
+
+const resolvers: Resolvers = {
   Query: {
-    node: async (_, { id }, { dataSources }: { dataSources: DataSources }) => {
-      const { type, idValue } = decodeGlobalId(id);
-      switch (type) {
-        case 'Project':
-          return dataSources.stackBlitzAPI.getProjectById(idValue);
-        case 'User':
-          return dataSources.stackBlitzAPI.getUserById(idValue);
-        default:
-          throw new Error(`No such type for id ${id}`);
-      }
+    node: async (_, { id }, { dataSources }) => {
+      return dataSources.stackBlitzAPI.getNodeById(id);
     },
     
-    projects: async (_, { first, after }, { dataSources }: { dataSources: DataSources }) => {
-      return dataSources.stackBlitzAPI.getProjects(first, after);
+    projects: async (_, { filters, pagination }, { dataSources }) => {
+      return dataSources.stackBlitzAPI.getProjects(filters, pagination);
     },
     
-    project: async (_, { id }, { dataSources }: { dataSources: DataSources }) => {
+    project: async (_, { id }, { dataSources }) => {
       return dataSources.stackBlitzAPI.getProjectById(id);
     },
     
-    users: async (_, { first, after }, { dataSources }: { dataSources: DataSources }) => {
-      return dataSources.stackBlitzAPI.getUsers(first, after);
+    users: async (_, { pagination }, { dataSources }) => {
+      return dataSources.stackBlitzAPI.getUsers(pagination);
     },
     
-    user: async (_, { id }, { dataSources }: { dataSources: DataSources }) => {
+    user: async (_, { id }, { dataSources }) => {
       return dataSources.stackBlitzAPI.getUserById(id);
     },
   },
   
-
   Mutation: {
-    createProject: async (_, { input }, { dataSources }: { dataSources: DataSources }) => {
+    createProject: async (_, { input }, { dataSources }) => {
       return dataSources.stackBlitzAPI.createProject(input);
     },
     
-    updateProject: async (_, { id, input }, { dataSources }: { dataSources: DataSources }) => {
+    updateProject: async (_, { id, input }, { dataSources }) => {
       return dataSources.stackBlitzAPI.updateProject(id, input);
     },
     
-    deleteProject: async (_, { id }, { dataSources }: { dataSources: DataSources }) => {
+    deleteProject: async (_, { id }, { dataSources }) => {
       return dataSources.stackBlitzAPI.deleteProject(id);
+    },
+    
+    forkProject: async (_, { id, input }, { dataSources }) => {
+      return dataSources.stackBlitzAPI.forkProject(id, input);
+    },
+  },
+  
+  Project: {
+    // Resolve fields with custom logic if needed
+    owner: async (project, _, { dataSources }) => {
+      // If the owner is already included in the project data, use it
+      if (project.owner) return project.owner;
+      
+      // Otherwise, fetch the owner using the project's owner ID
+      // This assumes there's an ownerId field in the project data
+      if (project.ownerId) {
+        return dataSources.stackBlitzAPI.getUserById(project.ownerId);
+      }
+      
+      throw new Error(`Cannot resolve owner for project ${project.id}`);
+    },
+  },
+  
+  User: {
+    // Resolve user's projects with pagination and filters
+    projects: async (user, { filters, pagination }, { dataSources }) => {
+      const { id } = decodeGlobalId(user.id);
+      return dataSources.stackBlitzAPI.getUserProjects(id, filters, pagination);
     },
   },
 
   Node: {
-     // Resolve the global ID for both Project and User types.
-     __resolveType(obj) {
-       if (obj.title) return 'Project';
-       if (obj.username) return 'User';
-       return null; // GraphQLError is thrown for invalid types.
-     },
-   },
+    __resolveType(obj) {
+      // Determine the type of a Node based on its structure
+      if ('title' in obj && 'files' in obj) return 'Project';
+      if ('username' in obj) return 'User';
+      return null;
+    },
+  },
 };
 
-function decodeGlobalId(globalId) {
-   const decoded = Buffer.from(globalId, 'base64').toString('utf-8');
-   const [type, idValue] = decoded.split(':');
-   return { type, idValue };
-}
+export const Query = resolvers.Query;
+export const Mutation = resolvers.Mutation;
+export const Project = resolvers.Project;
+export const User = resolvers.User;
+export const Node = resolvers.Node;
 
-export const Query = resolvers.Query
-export const Mutation = resolvers.Mutation
-export const Node = resolvers.Node
+export default resolvers;

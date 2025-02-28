@@ -1,50 +1,71 @@
 {
-  "name": "@graphql-api/template",
-  "version": "0.0.0",
-  "description": "template",
-  "main": "index.js",
+  "name": "@graphql-api/stackblitz",
+  "version": "0.1.0",
+  "description": "GraphQL API for StackBlitz integration",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
   "exports": {
     ".": {
-      "federation": []
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
     },
-    "./resolvers": [
-      "./build/resolvers"
-    ],
-    "./schema": [
-      "./schema.graphql"
-    ]
+    "./resolvers": {
+      "import": "./dist/esm/resolvers.js",
+      "require": "./dist/cjs/resolvers.js",
+      "types": "./dist/types/resolvers.d.ts"
+    },
+    "./schema": {
+      "import": "./schema.graphql",
+      "require": "./schema.graphql"
+    }
   },
   "typesVersions": {
     "*": {
       ".": [
-        "./build/types.d.ts"
+        "./dist/types/index.d.ts"
       ],
-      "federation:": [
-        "./federation/types.d.ts"
+      "resolvers": [
+        "./dist/types/resolvers.d.ts"
       ]
     }
   },
+  "files": [
+    "dist",
+    "schema.graphql",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "tsc",
-    "codegen": "graphql-codegen",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run build:clean && npm run build:types && npm run build:js && npm run build:schema",
+    "build:clean": "rimraf dist",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist/types",
+    "build:js": "rollup -c",
+    "build:schema": "graphql-codegen",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build",
+    "codegen": "graphql-codegen"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/graphql-api/graphql-api-template.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/graphql-api"
+    "registry": "https://npm.pkg.github.com/graphql-api",
+    "access": "public"
   },
   "keywords": [
     "graphql",
     "apollo",
     "gql",
-    "template",
+    "stackblitz",
+    "sdk",
     "typescript"
   ],
   "author": "Jonathan Allenberg",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/graphql-api/graphql-api-template/issues"
   },
@@ -55,9 +76,29 @@
     "@graphql-codegen/typescript": "^2.4.5",
     "@graphql-codegen/typescript-apollo-client-helpers": "^2.1.12",
     "@graphql-codegen/typescript-resolvers": "^2.5.2",
+    "@rollup/plugin-commonjs": "^22.0.0",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-typescript": "^8.3.2",
+    "@types/jest": "^28.1.1",
+    "@types/node": "^17.0.40",
     "apollo-server-micro": "^3.6.3",
+    "eslint": "^8.17.0",
     "graphql": "^16.3.0",
+    "jest": "^28.1.1",
     "micro": "^9.3.4",
-    "typescript": "^4.5.5"
+    "rimraf": "^3.0.2",
+    "rollup": "^2.75.6",
+    "rollup-plugin-terser": "^7.0.2",
+    "ts-jest": "^28.0.4",
+    "typescript": "^4.7.3"
+  },
+  "dependencies": {
+    "@apollo/datasource-rest": "^4.0.0",
+    "@apollo/server": "^4.7.1",
+    "@stackblitz/sdk": "^1.11.0",
+    "graphql-tag": "^2.12.6"
+  },
+  "peerDependencies": {
+    "graphql": "^16.0.0"
   }
 }

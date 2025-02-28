@@ -1,80 +1,518 @@
+"""
+Node interface for implementing Relay-style global object identification
+"""
 interface Node {
-    id: ID!
-  }
+  """
+  Global identifier for the object
+  """
+  id: ID!
+}
 
-  type Query {
-    node(id: ID!): Node
-    projects(first: Int, after: String): ProjectConnection!
-    project(id: ID!): Project
-    users(first: Int, after: String): UserConnection!
-    user(id: ID!): User
-  }
+type Query {
+  """
+  Fetches an object given its global ID
+  """
+  node(id: ID!): Node
 
-  type Mutation {
-    createProject(input: CreateProjectInput!): CreateProjectPayload!
-    updateProject(id: ID!, input: UpdateProjectInput!): UpdateProjectPayload!
-    deleteProject(id: ID!): DeleteProjectPayload!
-  }
+  """
+  Fetches all projects with optional filtering and pagination
+  """
+  projects(
+    """
+    Optional filters to apply to the projects query
+    """
+    filters: ProjectFiltersInput
+    
+    """
+    Pagination parameters
+    """
+    pagination: PaginationInput
+  ): ProjectConnection!
 
-  type Project implements Node  {
-    id: ID!
-    title: String!
-    description: String
-    createdAt: String!
-    updatedAt: String!
-    owner: User!
-  }
+  """
+  Fetches a specific project by its ID
+  """
+  project(id: ID!): Project
 
-  type User implements Node {
-    id: ID!
-    username: String!
-    email: String!
-    projects(first: Int, after: String): ProjectConnection!
-  }
+  """
+  Fetches all users with optional pagination
+  """
+  users(
+    """
+    Pagination parameters
+    """
+    pagination: PaginationInput
+  ): UserConnection!
 
-  type ProjectConnection {
-    edges: [ProjectEdge!]!
-    pageInfo: PageInfo!
-  }
+  """
+  Fetches a specific user by their ID
+  """
+  user(id: ID!): User
+}
 
-  type ProjectEdge {
-    cursor: String!
-    node: Project!
-  }
+type Mutation {
+  """
+  Creates a new project
+  """
+  createProject(input: CreateProjectInput!): CreateProjectPayload!
 
-  type UserConnection {
-    edges: [UserEdge!]!
-    pageInfo: PageInfo!
-  }
+  """
+  Updates an existing project
+  """
+  updateProject(id: ID!, input: UpdateProjectInput!): UpdateProjectPayload!
 
-  type UserEdge {
-    cursor: String!
-    node: User!;
-  }
+  """
+  Deletes a project
+  """
+  deleteProject(id: ID!): DeleteProjectPayload!
 
-  type PageInfo {
-    hasNextPage: Boolean!
-    endCursor: String
-  }
+  """
+  Forks an existing project, optionally applying changes
+  """
+  forkProject(id: ID!, input: UpdateProjectInput): ForkProjectPayload!
+}
 
-  input CreateProjectInput {
-    title: String!
-    description: String
-  }
+"""
+A project in StackBlitz
+"""
+type Project implements Node {
+  """
+  The global ID of the project
+  """
+  id: ID!
 
-  type CreateProjectPayload {
-    project: Project!;
-  }
+  """
+  The title of the project
+  """
+  title: String!
 
-  input UpdateProjectInput {
-    title: String
-    description: String
-  }
+  """
+  Optional description of the project
+  """
+  description: String
 
-  type UpdateProjectPayload {
-    project: Project!;
-  }
+  """
+  Files contained in the project, with file paths as keys and content as values
+  """
+  files: JSONObject!
 
-  type DeleteProjectPayload {
-    success: Boolean!;
-  }
+  """
+  The template used for the project (e.g., "javascript", "react", "angular", etc.)
+  """
+  template: String!
+
+  """
+  Dependencies used in the project, with package names as keys and versions as values
+  """
+  dependencies: JSONObject
+
+  """
+  Project settings for configuring the StackBlitz editor and runtime
+  """
+  settings: ProjectSettings
+
+  """
+  Tags associated with the project for categorization and discovery
+  """
+  tags: [String!]
+
+  """
+  When the project was created (ISO date string)
+  """
+  createdAt: String
+
+  """
+  When the project was last updated (ISO date string)
+  """
+  updatedAt: String
+
+  """
+  The file that should be opened by default when viewing the project
+  """
+  openFile: String
+
+  """
+  The user who owns the project
+  """
+  owner: User!
+}
+
+"""
+Project settings for configuring the StackBlitz editor and runtime
+"""
+type ProjectSettings {
+  """
+  Compilation settings
+  """
+  compile: CompileSettings
+
+  """
+  Height of the dev tools panel in pixels
+  """
+  devToolsHeight: Int
+
+  """
+  Whether to hide the dev tools panel
+  """
+  hideDevTools: Boolean
+
+  """
+  Whether to hide the navigation UI
+  """
+  hideNavigation: Boolean
+}
+
+"""
+Settings for the compiler
+"""
+type CompileSettings {
+  """
+  Whether to clear the console on each compilation
+  """
+  clearConsole: Boolean
+
+  """
+  Whether to hard reload the preview on changes
+  """
+  hardReloadOnChange: Boolean
+
+  """
+  Whether to ignore compiler warnings
+  """
+  ignoreWarnings: Boolean
+}
+
+"""
+A user in StackBlitz
+"""
+type User implements Node {
+  """
+  The global ID of the user
+  """
+  id: ID!
+
+  """
+  The username of the user
+  """
+  username: String!
+
+  """
+  The display name of the user
+  """
+  displayName: String
+
+  """
+  The URL to the user's profile page
+  """
+  url: String
+
+  """
+  The URL to the user's avatar image
+  """
+  avatarUrl: String
+
+  """
+  Projects created by the user
+  """
+  projects(
+    """
+    Optional filters to apply to the projects query
+    """
+    filters: ProjectFiltersInput
+    
+    """
+    Pagination parameters
+    """
+    pagination: PaginationInput
+  ): ProjectConnection!
+}
+
+"""
+Connection type for paginated projects
+"""
+type ProjectConnection {
+  """
+  List of project edges containing cursor information
+  """
+  edges: [ProjectEdge!]!
+
+  """
+  Information about the pagination state
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+Edge type for projects in a connection
+"""
+type ProjectEdge {
+  """
+  Cursor for pagination, opaque string representing the position in the list
+  """
+  cursor: String!
+
+  """
+  The project at this position in the connection
+  """
+  node: Project!
+}
+
+"""
+Connection type for paginated users
+"""
+type UserConnection {
+  """
+  List of user edges containing cursor information
+  """
+  edges: [UserEdge!]!
+
+  """
+  Information about the pagination state
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+Edge type for users in a connection
+"""
+type UserEdge {
+  """
+  Cursor for pagination, opaque string representing the position in the list
+  """
+  cursor: String!
+
+  """
+  The user at this position in the connection
+  """
+  node: User!
+}
+
+"""
+Pagination information
+"""
+type PageInfo {
+  """
+  Whether there are more items after the current page
+  """
+  hasNextPage: Boolean!
+
+  """
+  Cursor to the last item in the current page, used for pagination
+  """
+  endCursor: String
+}
+
+"""
+Input for filtering projects
+"""
+input ProjectFiltersInput {
+  """
+  Filter by user ID
+  """
+  userId: ID
+
+  """
+  Filter by tag
+  """
+  tag: String
+
+  """
+  Search term to filter projects by title or description
+  """
+  search: String
+
+  """
+  Filter by project template
+  """
+  template: String
+}
+
+"""
+Input for pagination
+"""
+input PaginationInput {
+  """
+  Number of items to fetch
+  """
+  first: Int
+
+  """
+  Cursor to start fetching from
+  """
+  after: String
+}
+
+"""
+Input for creating a new project
+"""
+input CreateProjectInput {
+  """
+  Title of the project
+  """
+  title: String!
+
+  """
+  Description of the project
+  """
+  description: String
+
+  """
+  Files to include in the project, with file paths as keys and content as values
+  """
+  files: JSONObject!
+
+  """
+  Template to use for the project
+  """
+  template: String!
+
+  """
+  Dependencies to include in the project
+  """
+  dependencies: JSONObject
+
+  """
+  Project settings
+  """
+  settings: ProjectSettingsInput
+
+  """
+  Tags to associate with the project
+  """
+  tags: [String!]
+
+  """
+  File to open by default when viewing the project
+  """
+  openFile: String
+}
+
+"""
+Input for updating an existing project
+"""
+input UpdateProjectInput {
+  """
+  New title for the project
+  """
+  title: String
+
+  """
+  New description for the project
+  """
+  description: String
+
+  """
+  Updated files for the project
+  """
+  files: JSONObject
+
+  """
+  Updated dependencies for the project
+  """
+  dependencies: JSONObject
+
+  """
+  Updated project settings
+  """
+  settings: ProjectSettingsInput
+
+  """
+  Updated tags for the project
+  """
+  tags: [String!]
+
+  """
+  Updated default file to open
+  """
+  openFile: String
+}
+
+"""
+Input for project settings
+"""
+input ProjectSettingsInput {
+  """
+  Compilation settings
+  """
+  compile: CompileSettingsInput
+
+  """
+  Height of the dev tools panel in pixels
+  """
+  devToolsHeight: Int
+
+  """
+  Whether to hide the dev tools panel
+  """
+  hideDevTools: Boolean
+
+  """
+  Whether to hide the navigation UI
+  """
+  hideNavigation: Boolean
+}
+
+"""
+Input for compiler settings
+"""
+input CompileSettingsInput {
+  """
+  Whether to clear the console on each compilation
+  """
+  clearConsole: Boolean
+
+  """
+  Whether to hard reload the preview on changes
+  """
+  hardReloadOnChange: Boolean
+
+  """
+  Whether to ignore compiler warnings
+  """
+  ignoreWarnings: Boolean
+}
+
+"""
+Response for creating a project
+"""
+type CreateProjectPayload {
+  """
+  The newly created project
+  """
+  project: Project!
+}
+
+"""
+Response for updating a project
+"""
+type UpdateProjectPayload {
+  """
+  The updated project
+  """
+  project: Project!
+}
+
+"""
+Response for deleting a project
+"""
+type DeleteProjectPayload {
+  """
+  Whether the deletion was successful
+  """
+  success: Boolean!
+}
+
+"""
+Response for forking a project
+"""
+type ForkProjectPayload {
+  """
+  The newly forked project
+  """
+  project: Project!
+}
+
+"""
+Custom scalar for handling JSON objects
+"""
+scalar JSONObject
